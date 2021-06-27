@@ -1,6 +1,7 @@
 # ortho-remote
 
-C program for reading values from the Teenage Engineering Ortho Remote.
+C program for interfacing with the
+[Teenage Engineering Ortho Remote](https://teenage.engineering/products/orthoremote).
 
 - Currently only implemented for macOS
 - Puts the remote into MIDI mode which means it has a fixed range of values
