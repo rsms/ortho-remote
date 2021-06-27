@@ -57,9 +57,10 @@ static void __attribute__((constructor)) init() {
 @end
 
 typedef struct Ortho {
-  BTObj*       btobj;
-  ortho_msg_fn msgcb;
-  void*        userdata;
+  BTObj*           btobj;
+  ortho_msg_fn     msgcb;
+  void*            userdata;
+  ortho_memfree_fn memfree;
 } Ortho;
 
 
@@ -384,18 +385,19 @@ typedef enum ScanState {
 @end
 
 
-Ortho* ortho_create(ortho_memalloc_fn memalloc) {
+Ortho* ortho_create(ortho_memalloc_fn memalloc, ortho_memfree_fn memfree) {
   Ortho* o = memalloc(sizeof(Ortho));
   memset((void*)o, 0, sizeof(Ortho));
+  o->memfree = memfree;
   return o;
 }
 
-void ortho_free(Ortho* o, ortho_memfree_fn memfree) {
+void ortho_free(Ortho* o) {
   if (o->btobj) {
     [o->btobj stopScan];
     o->btobj = nil;
   }
-  memfree(o);
+  o->memfree(o);
 }
 
 int ortho_runloop(Ortho* o, ortho_msg_fn msgcb, void* userdata) {

@@ -12,11 +12,11 @@ static void onmsg(const OrthoMsg* msg, void* userdata) {
 }
 
 int main(int argc, char *argv[]) {
-  Ortho* ortho = ortho_create(malloc);
+  Ortho* ortho = ortho_create(malloc, free);
   if (!ortho) {
     return 1;
   }
   ortho_runloop(ortho, onmsg, NULL);
-  ortho_free(ortho, free);
+  ortho_free(ortho);
   return 0;
 }

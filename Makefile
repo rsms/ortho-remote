@@ -52,10 +52,13 @@ $(OBJDIR)/%.m.o: %.m Makefile
 	$(Q)mkdir -p "$(dir $@)"
 	$(Q)$(CC) $(CFLAGS) $(OBJCFLAGS) -o $@ -c $<
 
+dev:
+	$(Q)autorun Makefile src/*.c src/*.h src/*.m -- "make DEBUG=1 && ./ortho-debug"
+
 clean:
 	rm -rf ortho ortho-debug build
 
-.PHONY: all clean
+.PHONY: all dev clean
 
 # .d files
 -include ${OBJS:.o=.d}

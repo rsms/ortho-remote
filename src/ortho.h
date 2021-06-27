@@ -31,10 +31,10 @@ typedef void(*ortho_msg_fn)(const OrthoMsg* msg, void* userdata);
 
 
 // ortho_create creates a new Ortho handle
-Ortho* ortho_create(ortho_memalloc_fn);
+Ortho* ortho_create(ortho_memalloc_fn, ortho_memfree_fn);
 
 // ortho_free stops & releases internal state and memory
-void ortho_free(Ortho*, ortho_memfree_fn);
+void ortho_free(Ortho*);
 
 // ortho_runloop runs forever. It must run on the main thread.
 // userdata is some opaque value passed to msgcb.
