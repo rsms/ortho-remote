@@ -1,0 +1,41 @@
+
+depress button
+90 3C 64
+release button
+80 3C 00
+depress button
+90 3C 64
+release button
+80 3C 00
+
+turn clockwise
+B0 01 00
+B0 01 01
+B0 01 02
+...
+B0 01 7F
+
+turn counter clockwise
+B0 01 7F
+B0 01 7D
+B0 01 7C
+...
+B0 01 00
+
+--------------------------
+BLE
+
+discovered service: <CBService: 0x7fdbb540b5a0, isPrimary = NO, UUID = Device Information>
+discovered service: <CBService: 0x7fdbb5413730, isPrimary = NO, UUID = Battery>
+discovered service: <CBService: 0x7fdbb5413810, isPrimary = NO, UUID = BLE MIDI>
+discovered service: <CBService: 0x7fdbb5413850, isPrimary = NO, UUID = 20454C45-4354-5241-2052-554C45532120>
+
+
+didDiscoverCharacteristicsForService <CBService: 0x7fe6fc004390, isPrimary = NO, UUID = Battery>
+  <CBCharacteristic: 0x7fe6fad050d0, UUID = Battery Level, properties = 0x12, value = (null), notifying = NO>
+
+didDiscoverCharacteristicsForService <CBService: 0x7fe6fc004470, isPrimary = NO, UUID = BLE MIDI>
+  <CBCharacteristic: 0x7fe6fad04460, UUID = 7772E5DB-3868-4112-A1A9-F2669D106BF3, properties = 0x16, value = (null), notifying = NO>
+
+didDiscoverCharacteristicsForService <CBService: 0x7fe6fc0046f0, isPrimary = NO, UUID = 20454C45-4354-5241-2052-554C45532120>
+  <CBCharacteristic: 0x7fe6fad04be0, UUID = 20454C46-4354-5241-2052-554C45532120, properties = 0x4, value = (null), notifying = NO>

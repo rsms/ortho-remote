@@ -1,0 +1,385 @@
+List:       linux-bluetooth
+Subject:    Missing events after reconnect (BLE)
+From:       Jacob Siverskog <jacob () teenageengineering ! com>
+Date:       2015-03-09 16:11:34
+Message-ID: CACgKv-KJjZ7y=0PeE5rz5NEiPKNFOsJekdyHjz65JN0=LqmNoA () mail ! gmail ! com
+[Download RAW message or body]
+
+Hi!
+We're developing a BLE remote control with a HID profile that goes to
+sleep after being idle some time. It is waken
+up by pressing a button on it, after waking up it performs undirected
+advertising towards the host.
+
+Sometimes we see that the press is not registered by the host. We can
+see the press in btmon but it never ends up in /dev/input/XXX.
+Subsequent presses works fine.
+
+Attached are two btmon logs. What I can see is that the "press event"
+(Handle Value Notification) is received earlier in the working case.
+
+Are we simply sending the event too early? Or is there any other issue?
+
+Thank you.
+
+     Jacob
+
+["non_working.txt" (text/plain)]
+
+> HCI Event: Disconnect Complete (0x05) plen 4                                        \
+> [hci0] 450.763318
+        Status: Success (0x00)
+        Handle: 1025
+        Reason: Remote User Terminated Connection (0x13)
+@ Device Disconnected: E6:2A:C9:E1:79:7F (2) reason 3
+< HCI Command: LE Set Scan Parameters (0x08|0x000b) plen 7                            \
+[hci0] 450.784983  Type: Passive (0x00)
+        Interval: 60.000 msec (0x0060)
+        Window: 30.000 msec (0x0030)
+        Own address type: Public (0x00)
+        Filter policy: Ignore not in white list (0x01)
+> HCI Event: Command Complete (0x0e) plen 4                                           \
+> [hci0] 450.786094
+      LE Set Scan Parameters (0x08|0x000b) ncmd 1
+        Status: Success (0x00)
+< HCI Command: LE Set Scan Enable (0x08|0x000c) plen 2                                \
+[hci0] 450.786163  Scanning: Enabled (0x01)
+        Filter duplicates: Enabled (0x01)
+> HCI Event: Command Complete (0x0e) plen 4                                           \
+> [hci0] 450.788806
+      LE Set Scan Enable (0x08|0x000c) ncmd 1
+        Status: Success (0x00)
+> HCI Event: LE Meta Event (0x3e) plen 40                                             \
+> [hci0] 486.817303
+      LE Advertising Report (0x02)
+        Num reports: 1
+        Event type: Connectable undirected - ADV_IND (0x00)
+        Address type: Random (0x01)
+        Address: E6:2A:C9:E1:79:7F (Static)
+        Data length: 28
+        Appearance: Remote Control (0x0180)
+        Flags: 0x04
+          BR/EDR Not Supported
+        TX power: 4 dBm
+        128-bit Service UUIDs (complete): 1 entry
+          20454c45-4354-5241-2052-554c45532120
+        RSSI: -80 dBm (0xb0)
+< HCI Command: LE Set Scan Enable (0x08|0x000c) plen 2                                \
+[hci0] 486.817435  Scanning: Disabled (0x00)
+        Filter duplicates: Disabled (0x00)
+> HCI Event: Command Complete (0x0e) plen 4                                           \
+> [hci0] 486.819574
+      LE Set Scan Enable (0x08|0x000c) ncmd 1
+        Status: Success (0x00)
+< HCI Command: LE Create Connection (0x08|0x000d) plen 25                             \
+[hci0] 486.819644  Scan interval: 60.000 msec (0x0060)
+        Scan window: 30.000 msec (0x0030)
+        Filter policy: White list is not used (0x00)
+        Peer address type: Random (0x01)
+        Peer address: E6:2A:C9:E1:79:7F (Static)
+        Own address type: Public (0x00)
+        Min connection interval: 7.50 msec (0x0006)
+        Max connection interval: 30.00 msec (0x0018)
+        Connection latency: 0x0006
+        Supervision timeout: 4000 msec (0x0190)
+        Min connection length: 0.000 msec (0x0000)
+        Max connection length: 0.000 msec (0x0000)
+> HCI Event: Command Status (0x0f) plen 4                                             \
+> [hci0] 486.821026
+      LE Create Connection (0x08|0x000d) ncmd 1
+        Status: Success (0x00)
+> HCI Event: LE Meta Event (0x3e) plen 19                                             \
+> [hci0] 486.846614
+      LE Connection Complete (0x01)
+        Status: Success (0x00)
+        Handle: 1025
+        Role: Master (0x00)
+        Peer address type: Random (0x01)
+        Peer address: E6:2A:C9:E1:79:7F (Static)
+        Connection interval: 28.75 msec (0x0017)
+        Connection latency: 7.50 msec (0x0006)
+        Supervision timeout: 4000 msec (0x0190)
+        Master clock accuracy: 0x01
+@ Device Connected: E6:2A:C9:E1:79:7F (2) flags 0x0000
+        03 19 80 01 02 01 04 02 0a 04 11 07 20 21 53 45  ............ !SE
+        4c 55 52 20 41 52 54 43 45 4c 45 20              LUR ARTCELE     
+< HCI Command: LE Start Encryption (0x08|0x0019) plen 28                              \
+[hci0] 486.867845  Handle: 1025
+        Random number: 0xf83d7c7b021951b1
+        Encrypted diversifier: 0xe4c0
+        Long term key: eef076bc94709764e58b2407ea1033c7
+> HCI Event: Command Status (0x0f) plen 4                                             \
+> [hci0] 486.869378
+      LE Start Encryption (0x08|0x0019) ncmd 1
+        Status: Success (0x00)
+> HCI Event: Encryption Change (0x08) plen 4                                          \
+> [hci0] 487.161300
+        Status: Success (0x00)
+        Handle: 1025
+        Encryption: Enabled with AES-CCM (0x01)
+< ACL Data TX: Handle 1025 flags 0x00 dlen 7                                          \
+[hci0] 487.162199  ATT: Exchange MTU Request (0x02) len 2
+        Client RX MTU: 517
+> ACL Data RX: Handle 1025 flags 0x02 dlen 10                                         \
+> [hci0] 487.189319
+      ATT: Handle Value Notification (0x1b) len 5
+        Handle: 0x001c
+          Data: 043401
+> ACL Data RX: Handle 1025 flags 0x02 dlen 10                                         \
+> [hci0] 487.218089
+      ATT: Handle Value Notification (0x1b) len 5
+        Handle: 0x001c
+          Data: 003401
+> ACL Data RX: Handle 1025 flags 0x02 dlen 7                                          \
+> [hci0] 487.218730
+      ATT: Exchange MTU Response (0x03) len 2
+        Server RX MTU: 23
+< ACL Data TX: Handle 1025 flags 0x00 dlen 9                                          \
+[hci0] 487.242224  ATT: Read Blob Request (0x0c) len 4
+        Handle: 0x0003
+        Offset: 0x0000
+> HCI Event: Number of Completed Packets (0x13) plen 5                                \
+> [hci0] 487.275542
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 17                                         \
+> [hci0] 487.304514
+      ATT: Read Blob Response (0x0d) len 12
+        6f 72 74 68 6f 20 72 65 6d 6f 74 65              ortho remote    
+< ACL Data TX: Handle 1025 flags 0x00 dlen 7                                          \
+[hci0] 487.306199  ATT: Read Request (0x0a) len 2
+        Handle: 0x0005
+> ACL Data RX: Handle 1025 flags 0x02 dlen 7                                          \
+> [hci0] 487.390452
+      ATT: Read Response (0x0b) len 2
+        Value: 8001
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                                         \
+[hci0] 487.393817  ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0009-0x0013
+        Attribute type: Characteristic (0x2803)
+> HCI Event: Number of Completed Packets (0x13) plen 5                                \
+> [hci0] 487.419223
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 27                                         \
+> [hci0] 487.448141
+      ATT: Read By Type Response (0x09) len 22f
+        Attribute data length: 7
+        Attribute data list: 3 entries
+        Handle: 0x000a
+        Value: 020b00292a
+        Handle: 0x000c
+        Value: 020d00252a
+        Handle: 0x000e
+        Value: 020f00272a
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                                         \
+[hci0] 487.451745  ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x000f-0x0013
+        Attribute type: Characteristic (0x2803)
+> ACL Data RX: Handle 1025 flags 0x02 dlen 20                                         \
+> [hci0] 487.506285
+      ATT: Read By Type Response (0x09) len 15
+        Attribute data length: 7
+        Attribute data list: 2 entries
+        Handle: 0x0010
+        Value: 021100282a
+        Handle: 0x0012
+        Value: 021300502a
+< ACL Data TX: Handle 1025 flags 0x00 dlen 7                                          \
+[hci0] 487.508370  ATT: Read Request (0x0a) len 2
+        Handle: 0x000d
+> HCI Event: Number of Completed Packets (0x13) plen 5                                \
+> [hci0] 487.534198
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 13                                         \
+> [hci0] 487.563073
+      ATT: Read Response (0x0b) len 8
+        Value: 523943415a313248
+< ACL Data TX: Handle 1025 flags 0x00 dlen 7                                          \
+[hci0] 487.563954  ATT: Read Request (0x0a) len 2
+        Handle: 0x0013
+> ACL Data RX: Handle 1025 flags 0x02 dlen 12                                         \
+> [hci0] 487.621038
+      ATT: Read Response (0x0b) len 7
+        Value: 02672304000001
+> HCI Event: Number of Completed Packets (0x13) plen 5                                \
+> [hci0] 487.719759
+        Num handles: 1
+        Handle: 1025
+        Count: 1
+
+
+["working.txt" (text/plain)]
+
+> HCI Event: LE Meta Event (0x3e) plen 40                                             \
+> [hci0] 549.301152
+      LE Advertising Report (0x02)
+        Num reports: 1
+        Event type: Connectable undirected - ADV_IND (0x00)
+        Address type: Random (0x01)
+        Address: E6:2A:C9:E1:79:7F (Static)
+        Data length: 28
+        Appearance: Remote Control (0x0180)
+        Flags: 0x04
+          BR/EDR Not Supported
+        TX power: 4 dBm
+        128-bit Service UUIDs (complete): 1 entry
+          20454c45-4354-5241-2052-554c45532120
+        RSSI: -74 dBm (0xb6)
+< HCI Command: LE Set Scan Enable (0x08|0x000c) plen 2                                \
+[hci0] 549.301347  Scanning: Disabled (0x00)
+        Filter duplicates: Disabled (0x00)
+> HCI Event: Command Complete (0x0e) plen 4                                           \
+> [hci0] 549.303160
+      LE Set Scan Enable (0x08|0x000c) ncmd 1
+        Status: Success (0x00)
+< HCI Command: LE Create Connection (0x08|0x000d) plen 25                             \
+[hci0] 549.303473  Scan interval: 60.000 msec (0x0060)
+        Scan window: 30.000 msec (0x0030)
+        Filter policy: White list is not used (0x00)
+        Peer address type: Random (0x01)
+        Peer address: E6:2A:C9:E1:79:7F (Static)
+        Own address type: Public (0x00)
+        Min connection interval: 7.50 msec (0x0006)
+        Max connection interval: 30.00 msec (0x0018)
+        Connection latency: 0x0006
+        Supervision timeout: 4000 msec (0x0190)
+        Min connection length: 0.000 msec (0x0000)
+        Max connection length: 0.000 msec (0x0000)
+> HCI Event: Command Status (0x0f) plen 4                                             \
+> [hci0] 549.306586
+      LE Create Connection (0x08|0x000d) ncmd 1
+        Status: Success (0x00)
+> HCI Event: LE Meta Event (0x3e) plen 19                                             \
+> [hci0] 549.354069
+      LE Connection Complete (0x01)
+        Status: Success (0x00)
+        Handle: 1025
+        Role: Master (0x00)
+        Peer address type: Random (0x01)
+        Peer address: E6:2A:C9:E1:79:7F (Static)
+        Connection interval: 28.75 msec (0x0017)
+        Connection latency: 7.50 msec (0x0006)
+        Supervision timeout: 4000 msec (0x0190)
+        Master clock accuracy: 0x01
+@ Device Connected: E6:2A:C9:E1:79:7F (2) flags 0x0000
+        03 19 80 01 02 01 04 02 0a 04 11 07 20 21 53 45  ............ !SE
+        4c 55 52 20 41 52 54 43 45 4c 45 20              LUR ARTCELE     
+< HCI Command: LE Start Encryption (0x08|0x0019) plen 28                              \
+[hci0] 549.377521  Handle: 1025
+        Random number: 0xf83d7c7b021951b1
+        Encrypted diversifier: 0xe4c0
+        Long term key: eef076bc94709764e58b2407ea1033c7
+> HCI Event: Command Status (0x0f) plen 4                                             \
+> [hci0] 549.378025
+      LE Start Encryption (0x08|0x0019) ncmd 1
+        Status: Success (0x00)
+> HCI Event: Encryption Change (0x08) plen 4                                          \
+> [hci0] 549.725809
+        Status: Success (0x00)
+        Handle: 1025
+        Encryption: Enabled with AES-CCM (0x01)
+< ACL Data TX: Handle 1025 flags 0x00 dlen 7                                          \
+[hci0] 549.726778  ATT: Exchange MTU Request (0x02) len 2
+        Client RX MTU: 517
+> ACL Data RX: Handle 1025 flags 0x02 dlen 7                                          \
+> [hci0] 549.838707
+      ATT: Exchange MTU Response (0x03) len 2
+        Server RX MTU: 23
+< ACL Data TX: Handle 1025 flags 0x00 dlen 9                                          \
+[hci0] 549.860225  ATT: Read Blob Request (0x0c) len 4
+        Handle: 0x0003
+        Offset: 0x0000
+> HCI Event: Number of Completed Packets (0x13) plen 5                                \
+> [hci0] 549.867514
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 17                                         \
+> [hci0] 549.896854
+      ATT: Read Blob Response (0x0d) len 12
+        6f 72 74 68 6f 20 72 65 6d 6f 74 65              ortho remote    
+< ACL Data TX: Handle 1025 flags 0x00 dlen 7                                          \
+[hci0] 549.900596  ATT: Read Request (0x0a) len 2
+        Handle: 0x0005
+> ACL Data RX: Handle 1025 flags 0x02 dlen 7                                          \
+> [hci0] 549.983029
+      ATT: Read Response (0x0b) len 2
+        Value: 8001
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                                         \
+[hci0] 549.984196  ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0009-0x0013
+        Attribute type: Characteristic (0x2803)
+> HCI Event: Number of Completed Packets (0x13) plen 5                                \
+> [hci0] 550.011289
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 27                                         \
+> [hci0] 550.040173
+      ATT: Read By Type Response (0x09) len 22
+        Attribute data length: 7
+        Attribute data list: 3 entries
+        Handle: 0x000a
+        Value: 020b00292a
+        Handle: 0x000c
+        Value: 020d00252a
+        Handle: 0x000e
+        Value: 020f00272a
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                                         \
+[hci0] 550.041105  ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x000f-0x0013
+        Attribute type: Characteristic (0x2803)
+> ACL Data RX: Handle 1025 flags 0x02 dlen 20                                         \
+> [hci0] 550.126941
+      ATT: Read By Type Response (0x09) len 15
+        Attribute data length: 7
+        Attribute data list: 2 entries
+        Handle: 0x0010
+        Value: 021100282a
+        Handle: 0x0012
+        Value: 021300502a
+< ACL Data TX: Handle 1025 flags 0x00 dlen 7                                          \
+[hci0] 550.127795  ATT: Read Request (0x0a) len 2
+        Handle: 0x000d
+> HCI Event: Number of Completed Packets (0x13) plen 5                                \
+> [hci0] 550.155936
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 13                                         \
+> [hci0] 550.183871
+      ATT: Read Response (0x0b) len 8
+        Value: 523943415a313248
+< ACL Data TX: Handle 1025 flags 0x00 dlen 7                                          \
+[hci0] 550.185152  ATT: Read Request (0x0a) len 2
+        Handle: 0x0013
+> ACL Data RX: Handle 1025 flags 0x02 dlen 10                                         \
+> [hci0] 550.242930
+      ATT: Handle Value Notification (0x1b) len 5
+        Handle: 0x001c
+          Data: 043b01
+> ACL Data RX: Handle 1025 flags 0x02 dlen 10                                         \
+> [hci0] 550.242966
+      ATT: Handle Value Notification (0x1b) len 5
+        Handle: 0x001c
+          Data: 003b01
+> ACL Data RX: Handle 1025 flags 0x02 dlen 12                                         \
+> [hci0] 550.270400
+      ATT: Read Response (0x0b) len 7
+        Value: 02672304000001
+> HCI Event: Number of Completed Packets (0x13) plen 5                                \
+> [hci0] 550.341134
+        Num handles: 1
+        Handle: 1025
+        Count: 1
+
+
+--
+To unsubscribe from this list: send the line "unsubscribe linux-bluetooth" in
+the body of a message to majordomo@vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html

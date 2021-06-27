@@ -1,0 +1,79 @@
+List:       linux-bluetooth
+Subject:    Re: Missing events after reconnect (BLE)
+From:       Luiz Augusto von Dentz <luiz.dentz () gmail ! com>
+Date:       2015-03-11 19:46:04
+Message-ID: CABBYNZL3yRRvy9FXhko+VXJ0d901iUH=W6DM1Lci3zKRJapb_A () mail ! gmail ! com
+[Download RAW message or body]
+
+Hi Jacob,
+
+On Mon, Mar 9, 2015 at 6:11 PM, Jacob Siverskog
+<jacob@teenageengineering.com> wrote:
+> Hi!
+> We're developing a BLE remote control with a HID profile that goes to
+> sleep after being idle some time. It is waken
+> up by pressing a button on it, after waking up it performs undirected
+> advertising towards the host.
+>
+> Sometimes we see that the press is not registered by the host. We can
+> see the press in btmon but it never ends up in /dev/input/XXX.
+> Subsequent presses works fine.
+>
+> Attached are two btmon logs. What I can see is that the "press event"
+> (Handle Value Notification) is received earlier in the working case.
+>
+> Are we simply sending the event too early? Or is there any other issue?
+
+Sorry for the delay, for some reason this message went to my spam
+folder, anyway the problem we have is that we are not processing
+notification while MTU exchange is pending, please try with the
+attached patch (not tested so it may actually not work).
+
+-- 
+Luiz Augusto von Dentz
+
+["0001-core-device-Fix-not-handling-notification.patch" (text/x-patch)]
+
+From 5884cc4b0d8d8b813f2bae034655b54dbc46c0eb Mon Sep 17 00:00:00 2001
+From: Luiz Augusto von Dentz <luiz.von.dentz@intel.com>
+Date: Wed, 11 Mar 2015 21:23:55 +0200
+Subject: [PATCH BlueZ] core/device: Fix not handling notification
+
+attio callbacks needs to be triggered as soon as possible once connected
+otherwise profiles such as HoG may miss notification that are sent while
+bt_gatt_client is doing MTU exchange.
+---
+ src/device.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/src/device.c b/src/device.c
+index 831efea..0dc8c86 100644
+--- a/src/device.c
++++ b/src/device.c
+@@ -3984,8 +3984,6 @@ static void gatt_client_ready_cb(bool success, uint8_t att_ecode,
+ 
+  device_accept_gatt_profiles(device);
+ 
+- g_slist_foreach(device->attios, attio_connected, device->attrib);
+-
+  btd_gatt_client_ready(device->client_dbus);
+ }
+ 
+@@ -4007,6 +4005,9 @@ static void gatt_client_init(struct btd_device *device)
+    return;
+  }
+ 
++ /* Notify attio so it can react to notifications */
++ g_slist_foreach(device->attios, attio_connected, device->attrib);
++
+  if (!bt_gatt_client_set_ready_handler(device->client,
+              gatt_client_ready_cb,
+              device, NULL)) {
+-- 
+2.1.0
+
+
+--
+To unsubscribe from this list: send the line "unsubscribe linux-bluetooth" in
+the body of a message to majordomo@vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html

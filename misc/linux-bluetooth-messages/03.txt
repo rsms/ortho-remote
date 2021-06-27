@@ -1,0 +1,703 @@
+List:       linux-bluetooth
+Subject:    Re: Missing events after reconnect (BLE)
+From:       Jacob Siverskog <jacob () teenageengineering ! com>
+Date:       2015-03-12 10:15:49
+Message-ID: CACgKv-+OuUqu4h5eyMxV_pA=1pvPfje87RgQuTK0SgZ9r9a+8w () mail ! gmail ! com
+[Download RAW message or body]
+
+Hi Luiz!
+Thanks for the patch, it seems to solve the issue on newly paired
+devices. However, if I reboot the system it fails when registering
+GATT service (no device files are created):
+
+Thu Mar 12 09:43:01 2015 kern.err kernel: hid-generic
+0005:2367:0004.0001: unbalanced collection at end of report
+description
+Thu Mar 12 09:43:01 2015 kern.warn kernel: hid-generic: probe of
+0005:2367:0004.0001 failed with error -22
+Thu Mar 12 09:43:03 2015 daemon.err bluetoothd[1509]: Unable to
+register GATT service with handle 0x0008 for device E7:D8:E4:BB:69:88:
+Thu Mar 12 09:43:03 2015 daemon.err bluetoothd[1509]: Unable to
+register GATT service with handle 0x0014 for device E7:D8:E4:BB:69:88:
+Thu Mar 12 09:43:03 2015 daemon.err bluetoothd[1509]: Unable to
+register GATT service with handle 0x0025 for device E7:D8:E4:BB:69:88:
+
+This is something I have not seen before (without the patch).
+
+Attached is bluetoothd log and btmon log interleaved with syslog on a
+newly booted system. The system has one paired device (remote
+control). The remote control was in sleep until I pressed a button on
+it (at 3.17 secs in the btmon log).
+
+Please let me know if you need more information.
+
+     Jacob
+
+On Wed, Mar 11, 2015 at 8:46 PM, Luiz Augusto von Dentz
+<luiz.dentz@gmail.com> wrote:
+> Hi Jacob,
+>
+> On Mon, Mar 9, 2015 at 6:11 PM, Jacob Siverskog
+> <jacob@teenageengineering.com> wrote:
+>> Hi!
+>> We're developing a BLE remote control with a HID profile that goes to
+>> sleep after being idle some time. It is waken
+>> up by pressing a button on it, after waking up it performs undirected
+>> advertising towards the host.
+>>
+>> Sometimes we see that the press is not registered by the host. We can
+>> see the press in btmon but it never ends up in /dev/input/XXX.
+>> Subsequent presses works fine.
+>>
+>> Attached are two btmon logs. What I can see is that the "press event"
+>> (Handle Value Notification) is received earlier in the working case.
+>>
+>> Are we simply sending the event too early? Or is there any other issue?
+>
+> Sorry for the delay, for some reason this message went to my spam
+> folder, anyway the problem we have is that we are not processing
+> notification while MTU exchange is pending, please try with the
+> attached patch (not tested so it may actually not work).
+>
+> --
+> Luiz Augusto von Dentz
+
+["btmon_log.txt" (text/plain)]
+
+root@DEVICE:/# btmon
+Bluetooth monitor ver 5.27
+= New Index: 88:33:14:1A:96:52 (BR/EDR,UART,hci0)               [hci0] 0.269031
+
+
+
+
+
+> HCI Event: LE Meta Event (0x3e) plen 40                       [hci0] 3.174870
+      LE Advertising Report (0x02)
+        Num reports: 1
+        Event type: Connectable undirected - ADV_IND (0x00)
+        Address type: Random (0x01)
+        Address: E7:D8:E4:BB:69:88 (Static)
+        Data length: 28
+        Appearance: Remote Control (0x0180)
+        Flags: 0x04
+          BR/EDR Not Supported
+        TX power: 4 dBm
+        128-bit Service UUIDs (complete): 1 entry
+          20454c45-4354-5241-2052-554c45532120
+        RSSI: -61 dBm (0xc3)
+< HCI Command: LE Set Scan Enable (0x08|0x000c) plen 2          [hci0] 3.175001
+        Scanning: Disabled (0x00)
+        Filter duplicates: Disabled (0x00)
+> HCI Event: Command Complete (0x0e) plen 4                     [hci0] 3.176930
+      LE Set Scan Enable (0x08|0x000c) ncmd 1
+        Status: Success (0x00)
+< HCI Command: LE Create Connection (0x08|0x000d) plen 25       [hci0] 3.176998
+        Scan interval: 60.000 msec (0x0060)
+        Scan window: 30.000 msec (0x0030)
+        Filter policy: White list is not used (0x00)
+        Peer address type: Random (0x01)
+        Peer address: E7:D8:E4:BB:69:88 (Static)
+        Own address type: Public (0x00)
+        Min connection interval: 7.50 msec (0x0006)
+        Max connection interval: 30.00 msec (0x0018)
+        Connection latency: 0x0006
+        Supervision timeout: 4000 msec (0x0190)
+        Min connection length: 0.000 msec (0x0000)
+        Max connection length: 0.000 msec (0x0000)
+> HCI Event: Command Status (0x0f) plen 4                       [hci0] 3.177613
+      LE Create Connection (0x08|0x000d) ncmd 1
+        Status: Success (0x00)
+> HCI Event: LE Meta Event (0x3e) plen 19                       [hci0] 3.218573
+      LE Connection Complete (0x01)
+        Status: Success (0x00)
+        Handle: 1025
+        Role: Master (0x00)
+        Peer address type: Random (0x01)
+        Peer address: E7:D8:E4:BB:69:88 (Static)
+        Connection interval: 28.75 msec (0x0017)
+        Connection latency: 7.50 msec (0x0006)
+        Supervision timeout: 4000 msec (0x0190)
+        Master clock accuracy: 0x01
+< HCI Command: LE Start Encryption (0x08|0x0019) plen 28        [hci0] 3.241497
+        Handle: 1025
+        Random number: 0x0d2d5339fb90ffa7
+        Encrypted diversifier: 0x0386
+        Long term key: f9ffe8f584f2d54f6855c545c5740569
+> HCI Event: Command Status (0x0f) plen 4                       [hci0] 3.241928
+      LE Start Encryption (0x08|0x0019) ncmd 1
+        Status: Success (0x00)
+@ Device Connected: E7:D8:E4:BB:69:88 (2) flags 0x0000
+        03 19 80 01 02 01 04 02 0a 04 11 07 20 21 53 45  ............ !SE
+        4c 55 52 20 41 52 54 43 45 4c 45 20              LUR ARTCELE
+> HCI Event: Encryption Change (0x08) plen 4                    [hci0] 3.474882
+        Status: Success (0x00)
+        Handle: 1025
+        Encryption: Enabled with AES-CCM (0x01)
+< ACL Data TX: Handle 1025 flags 0x00 dlen 7                    [hci0] 3.477097
+      ATT: Exchange MTU Request (0x02) len 2
+        Client RX MTU: 517
+> ACL Data RX: Handle 1025 flags 0x02 dlen 10                   [hci0] 3.502883
+      ATT: Handle Value Notification (0x1b) len 5
+        Handle: 0x001c
+          Data: 043f00
+> ACL Data RX: Handle 1025 flags 0x02 dlen 10                   [hci0] 3.531672
+      ATT: Handle Value Notification (0x1b) len 5
+        Handle: 0x001c
+          Data: 003f00
+> ACL Data RX: Handle 1025 flags 0x02 dlen 7                    [hci0] 3.532980
+      ATT: Exchange MTU Response (0x03) len 2
+        Server RX MTU: 23
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 3.535517
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0009-0x0013
+        Attribute type: Characteristic (0x2803)
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 3.560568
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 27                   [hci0] 3.589217
+      ATT: Read By Type Response (0x09) len 22
+        Attribute data length: 7
+        Attribute data list: 3 entries
+        Handle: 0x000a
+        Value: 020b00292a
+        Handle: 0x000c
+        Value: 020d00252a
+        Handle: 0x000e
+        Value: 020f00272a
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 3.593501
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0018-0x0024
+        Attribute type: Characteristic (0x2803)
+> ACL Data RX: Handle 1025 flags 0x02 dlen 27                   [hci0] 3.647944
+      ATT: Read By Type Response (0x09) len 22
+        Attribute data length: 7
+        Attribute data list: 3 entries
+        Handle: 0x0019
+        Value: 061a004e2a
+        Handle: 0x001b
+        Value: 1a1c004d2a
+        Handle: 0x001f
+        Value: 0220004b2a
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 3.651079
+      ATT: Read By Group Type Request (0x10) len 6
+        Handle range: 0x0001-0xffff
+        Attribute group type: Primary Service (0x2800)
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 3.675314
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 24                   [hci0] 3.704176
+      ATT: Read By Group Type Response (0x11) len 19
+        Attribute data length: 6
+        Attribute data list: 3 entries
+        Handle: 0x0001
+        Value: 07000018
+        Handle: 0x0008
+        Value: 08000118
+        Handle: 0x0009
+        Value: 13000a18
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 3.705842
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x000f-0x0013
+        Attribute type: Characteristic (0x2803)
+> ACL Data RX: Handle 1025 flags 0x02 dlen 20                   [hci0] 3.761685
+      ATT: Read By Type Response (0x09) len 15
+        Attribute data length: 7
+        Attribute data list: 2 entries
+        Handle: 0x0010
+        Value: 021100282a
+        Handle: 0x0012
+        Value: 021300502a
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 3.762499
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0020-0x0024
+        Attribute type: Characteristic (0x2803)
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 3.790316
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 20                   [hci0] 3.819171
+      ATT: Read By Type Response (0x09) len 15
+        Attribute data length: 7
+        Attribute data list: 2 entries
+        Handle: 0x0021
+        Value: 0222004a2a
+        Handle: 0x0023
+        Value: 0424004c2a
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 3.820227
+      ATT: Read By Group Type Request (0x10) len 6
+        Handle range: 0x0014-0xffff
+        Attribute group type: Primary Service (0x2800)
+> ACL Data RX: Handle 1025 flags 0x02 dlen 18                   [hci0] 3.877559
+      ATT: Read By Group Type Response (0x11) len 13
+        Attribute data length: 6
+        Attribute data list: 2 entries
+        Handle: 0x0014
+        Value: 17000f18
+        Handle: 0x0018
+        Value: 24001218
+< ACL Data TX: Handle 1025 flags 0x00 dlen 7                    [hci0] 3.878198
+      ATT: Read Request (0x0a) len 2
+        Handle: 0x000d
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 3.906020
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 13                   [hci0] 3.935527
+      ATT: Read Response (0x0b) len 8
+        Value: 523943415a313248
+< ACL Data TX: Handle 1025 flags 0x00 dlen 7                   hid-generic \
+0005:2367:0004.0001: unbalanced collection at end of report description  [hci0] \
+3.936375  ATT: Read Request (0x0a) len 2
+        Handle: 0x0013
+> ACL Data RX: Handle 1025 flags 0x02 dlen 12                   [hci0] 3.991750
+      ATT: Read Response (0xhid-generic: probe of 0005:2367:0004.0001 failed with \
+error -22 0b) len 7
+        Value: 02672304000001
+< ACL Data TX: Handle 1025 flags 0x00 dlen 9                    [hci0] 3.993377
+      ATT: Find Information Request (0x04) len 4
+        Handle range: 0x001d-0x001e
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 4.020295
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 14                   [hci0] 4.049911
+      ATT: Find Information Response (0x05) len 9
+        Format: UUID-16 (0x01)
+        Handle: 0x001d
+        UUID: Client Characteristic Configuration (0x2902)
+        Handle: 0x001e
+        UUID: Report Reference (0x2908)
+< ACL Data TX: Handle 1025 flags 0x00 dlen 7                    [hci0] 4.052105
+      ATT: Read Request (0x0a) len 2
+        Handle: 0x0020
+> ACL Data RX: Handle 1025 flags 0x02 dlen 27                   [hci0] 4.106737
+      ATT: Read Response (0x0b) len 22
+        Value: 050c0901a101050c150025017501950109ea810609e9
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 4.177074
+        Num handles: 1
+        Handle: 1025
+        Count: 1
+< ACL Data TX: Handle 1025 flags 0x00 dlen 7                    [hci0] 4.183387
+      ATT: Read Request (0x0a) len 2
+        Handle: 0x001a
+> ACL Data RX: Handle 1025 flags 0x02 dlen 6                    [hci0] 4.365447
+      ATT: Read Response (0x0b) len 1
+        Value: 01
+< ACL Data TX: Handle 1025 flags 0x00 dlen 7                    [hci0] 4.366543
+      ATT: Read Request (0x0a) len 2
+        Handle: 0x0022
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 4.394060
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 9                    [hci0] 4.422849
+      ATT: Read Response (0x0b) len 4
+        Value: 01010003
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 4.423416
+      ATT: Read By Group Type Request (0x10) len 6
+        Handle range: 0x0025-0xffff
+        Attribute group type: Primary Service (0x2800)
+> ACL Data RX: Handle 1025 flags 0x02 dlen 26                   [hci0] 4.481389
+      ATT: Read By Group Type Response (0x11) len 21
+        Attribute data length: 20
+        Attribute data list: 1 entry
+        Handle: 0x0025
+        Value: ffff202153454c55522041525443454c4520
+< ACL Data TX: Handle 1025 flags 0x00 dlen 9                    [hci0] 4.484458
+      ATT: Write Request (0x12) len 4
+        Handle: 0x001d
+          Data: 0100
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 4.510951
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 5                    [hci0] 4.538858
+      ATT: Write Response (0x13) len 0
+< ACL Data TX: Handle 1025 flags 0x00 dlen 7                    [hci0] 4.539456
+      ATT: Read Request (0x0a) len 2
+        Handle: 0x001e
+> ACL Data RX: Handle 1025 flags 0x02 dlen 7                    [hci0] 4.595325
+      ATT: Read Response (0x0b) len 2
+        Value: 0001
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 4.597643
+      ATT: Read By Group Type Request (0x10) len 6
+        Handle range: 0x0001-0xffff
+        Attribute group type: Secondary Service (0x2801)
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 4.624140
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 9                    [hci0] 4.681572
+      ATT: Error Response (0x01) len 4
+        Read By Group Type Request (0x10)
+        Handle: 0x0001
+        Error: Attribute Not Found (0x0a)
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 4.682268
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0001-0x0007
+        Attribute type: Include (0x2802)
+> ACL Data RX: Handle 1025 flags 0x02 dlen 9                    [hci0] 4.739129
+      ATT: Error Response (0x01) len 4
+        Read By Type Request (0x08)
+        Handle: 0x0001
+        Error: Attribute Not Found (0x0a)
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 4.739731
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0008-0x0008
+        Attribute type: Include (0x2802)
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 4.767859
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 9                    [hci0] 4.825318
+      ATT: Error Response (0x01) len 4
+        Read By Type Request (0x08)
+        Handle: 0x0008
+        Error: Attribute Not Found (0x0a)
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 4.826018
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0009-0x0013
+        Attribute type: Include (0x2802)
+> ACL Data RX: Handle 1025 flags 0x02 dlen 9                    [hci0] 4.882835
+      ATT: Error Response (0x01) len 4
+        Read By Type Request (0x08)
+        Handle: 0x0009
+        Error: Attribute Not Found (0x0a)
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 4.883439
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0014-0x0017
+        Attribute type: Include (0x2802)
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 4.911604
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 9                    [hci0] 4.940430
+      ATT: Error Response (0x01) len 4
+        Read By Type Request (0x08)
+        Handle: 0x0014
+        Error: Attribute Not Found (0x0a)
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 4.941073
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0018-0x0024
+        Attribute type: Include (0x2802)
+> ACL Data RX: Handle 1025 flags 0x02 dlen 9                    [hci0] 4.997849
+      ATT: Error Response (0x01) len 4
+        Read By Type Request (0x08)
+        Handle: 0x0018
+        Error: Attribute Not Found (0x0a)
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 4.998427
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0025-0xffff
+        Attribute type: Include (0x2802)
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 5.026618
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 9                    [hci0] 5.056318
+      ATT: Error Response (0x01) len 4
+        Read By Type Request (0x08)
+        Handle: 0x0025
+        Error: Attribute Not Found (0x0a)
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 5.056961
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0001-0x0007
+        Attribute type: Characteristic (0x2803)
+> ACL Data RX: Handle 1025 flags 0x02 dlen 27                   [hci0] 5.113712
+      ATT: Read By Type Response (0x09) len 22
+        Attribute data length: 7
+        Attribute data list: 3 entries
+        Handle: 0x0002
+        Value: 0a0300002a
+        Handle: 0x0004
+        Value: 020500012a
+        Handle: 0x0006
+        Value: 020700042a
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 5.114327
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0007-0x0007
+        Attribute type: Characteristic (0x2803)
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 5.143267
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 9                    [hci0] 5.170443
+      ATT: Error Response (0x01) len 4
+        Read By Type Request (0x08)
+        Handle: 0x0007
+        Error: Attribute Not Found (0x0a)
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 5.172447
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0008-0x0008
+        Attribute type: Characteristic (0x2803)
+> ACL Data RX: Handle 1025 flags 0x02 dlen 9                    [hci0] 5.227861
+      ATT: Error Response (0x01) len 4
+        Read By Type Request (0x08)
+        Handle: 0x0008
+        Error: Attribute Not Found (0x0a)
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 5.228458
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0009-0x0013
+        Attribute type: Characteristic (0x2803)
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 5.256618
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 27                   [hci0] 5.285647
+      ATT: Read By Type Response (0x09) len 22
+        Attribute data length: 7
+        Attribute data list: 3 entries
+        Handle: 0x000a
+        Value: 020b00292a
+        Handle: 0x000c
+        Value: 020d00252a
+        Handle: 0x000e
+        Value: 020f00272a
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 5.286304
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x000f-0x0013
+        Attribute type: Characteristic (0x2803)
+> ACL Data RX: Handle 1025 flags 0x02 dlen 20                   [hci0] 5.342999
+      ATT: Read By Type Response (0x09) len 15
+        Attribute data length: 7
+        Attribute data list: 2 entries
+        Handle: 0x0010
+        Value: 021100282a
+        Handle: 0x0012
+        Value: 021300502a
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 5.343622
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0013-0x0013
+        Attribute type: Characteristic (0x2803)
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 5.371657
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 9                    [hci0] 5.400450
+      ATT: Error Response (0x01) len 4
+        Read By Type Request (0x08)
+        Handle: 0x0013
+        Error: Attribute Not Found (0x0a)
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 5.401370
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0014-0x0017
+        Attribute type: Characteristic (0x2803)
+> ACL Data RX: Handle 1025 flags 0x02 dlen 13                   [hci0] 5.458470
+      ATT: Read By Type Response (0x09) len 8
+        Attribute data length: 7
+        Attribute data list: 1 entry
+        Handle: 0x0015
+        Value: 121600192a
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 5.459517
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0016-0x0017
+        Attribute type: Characteristic (0x2803)
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 5.486637
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 9                    [hci0] 5.515453
+      ATT: Error Response (0x01) len 4
+        Read By Type Request (0x08)
+        Handle: 0x0016
+        Error: Attribute Not Found (0x0a)
+< ACL Data TX: Handle 1025 flags 0x00 dlen 9                    [hci0] 5.516288
+      ATT: Find Information Request (0x04) len 4
+        Handle range: 0x0017-0x0017
+> ACL Data RX: Handle 1025 flags 0x02 dlen 10                   [hci0] 5.572988
+      ATT: Find Information Response (0x05) len 5
+        Format: UUID-16 (0x01)
+        Handle: 0x0017
+        UUID: Client Characteristic Configuration (0x2902)
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 5.573769
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0018-0x0024
+        Attribute type: Characteristic (0x2803)
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 5.601641
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 27                   [hci0] 5.630585
+      ATT: Read By Type Response (0x09) len 22
+        Attribute data length: 7
+        Attribute data list: 3 entries
+        Handle: 0x0019
+        Value: 061a004e2a
+        Handle: 0x001b
+        Value: 1a1c004d2a
+        Handle: 0x001f
+        Value: 0220004b2a
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 5.631454
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0020-0x0024
+        Attribute type: Characteristic (0x2803)
+> ACL Data RX: Handle 1025 flags 0x02 dlen 20                   [hci0] 5.688990
+      ATT: Read By Type Response (0x09) len 15
+        Attribute data length: 7
+        Attribute data list: 2 entries
+        Handle: 0x0021
+        Value: 0222004a2a
+        Handle: 0x0023
+        Value: 0424004c2a
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 5.690401
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0024-0x0024
+        Attribute type: Characteristic (0x2803)
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 5.717317
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 9                    [hci0] 5.746421
+      ATT: Error Response (0x01) len 4
+        Read By Type Request (0x08)
+        Handle: 0x0024
+        Error: Attribute Not Found (0x0a)
+< ACL Data TX: Handle 1025 flags 0x00 dlen 9                    [hci0] 5.747281
+      ATT: Find Information Request (0x04) len 4
+        Handle range: 0x001d-0x001e
+> ACL Data RX: Handle 1025 flags 0x02 dlen 14                   [hci0] 5.802999
+      ATT: Find Information Response (0x05) len 9
+        Format: UUID-16 (0x01)
+        Handle: 0x001d
+        UUID: Client Characteristic Configuration (0x2902)
+        Handle: 0x001e
+        UUID: Report Reference (0x2908)
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 5.805740
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0025-0xffff
+        Attribute type: Characteristic (0x2803)
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 5.831656
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 27                   [hci0] 5.889308
+      ATT: Read By Type Response (0x09) len 22
+        Attribute data length: 21
+        Attribute data list: 1 entry
+        Handle: 0x0026
+        Value: 042700202153454c55522041525443464c4520
+< ACL Data TX: Handle 1025 flags 0x00 dlen 11                   [hci0] 5.889974
+      ATT: Read By Type Request (0x08) len 6
+        Handle range: 0x0027-0xffff
+        Attribute type: Characteristic (0x2803)
+> ACL Data RX: Handle 1025 flags 0x02 dlen 9                    [hci0] 5.946660
+      ATT: Error Response (0x01) len 4
+        Read By Type Request (0x08)
+        Handle: 0x0027
+        Error: Attribute Not Found (0x0a)
+< ACL Data TX: Handle 1025 flags 0x00 dlen 9                    [hci0] 5.947396
+      ATT: Find Information Request (0x04) len 4
+        Handle range: 0x0028-0xffff
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 5.975426
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 9                    [hci0] 6.004229
+      ATT: Error Response (0x01) len 4
+        Find Information Request (0x04)
+        Handle: 0x0028
+        Error: Attribute Not Found (0x0a)
+< ACL Data TX: Handle 1025 flags 0x00 dlen 9                    [hci0] 6.025882
+      ATT: Read Blob Request (0x0c) len 4
+        Handle: 0x0003
+        Offset: 0x0000
+> ACL Data RX: Handle 1025 flags 0x02 dlen 17                   [hci0] 6.061772
+      ATT: Read Blob Response (0x0d) len 12
+        6f 72 74 68 6f 20 72 65 6d 6f 74 65              ortho remote
+< ACL Data TX: Handle 1025 flags 0x00 dlen 7                    [hci0] 6.063514
+      ATT: Read Request (0x0a) len 2
+        Handle: 0x0005
+> HCI Event: Number of Completed Packets (0x13) plen 5          [hci0] 6.119139
+        Num handles: 1
+        Handle: 1025
+        Count: 2
+> ACL Data RX: Handle 1025 flags 0x02 dlen 7                    [hci0] 6.147847
+      ATT: Read Response (0x0b) len 2
+        Value: 8001
+
+
+["bluetoothd_log.txt" (text/plain)]
+
+bluetoothd[1803]: src/adapter.c:connected_callback() hci0 device E7:B7:2E:0F:E2:A8 \
+connected eir_len 28 bluetoothd[1803]: src/attrib-server.c:connect_event()
+bluetoothd[1803]: src/device.c:device_attach_att() Elevating security level since LTK \
+is available bluetoothd[1803]: attrib/gattrib.c:g_attrib_ref() 0x9d2940: \
+g_attrib_ref=1 bluetoothd[1803]: attrib/gattrib.c:g_attrib_ref() 0x9d2940: \
+g_attrib_ref=2 bluetoothd[1803]: src/device.c:attio_connected()
+bluetoothd[1803]: attrib/gattrib.c:g_attrib_ref() 0x9d2940: g_attrib_ref=3
+bluetoothd[1803]: attrib/gattrib.c:g_attrib_ref() 0x9d2940: g_attrib_ref=4
+bluetoothd[1803]: src/device.c:attio_connected()
+bluetoothd[1803]: profiles/input/hog.c:attio_connected_cb() HoG connected
+bluetoothd[1803]: attrib/gattrib.c:g_attrib_ref() 0x9d2940: g_attrib_ref=5
+bluetoothd[1803]: attrib/gattrib.c:g_attrib_ref() 0x9d2940: g_attrib_ref=6
+bluetoothd[1803]: attrib/gattrib.c:g_attrib_ref() 0x9d2940: g_attrib_ref=7
+bluetoothd[1803]: attrib/gattrib.c:g_attrib_ref() 0x9d2940: g_attrib_ref=8
+bluetoothd[1803]: attrib/gattrib.c:g_attrib_unref() 0x9d2940: g_attrib_unref=7
+bluetoothd[1803]: profiles/input/hog.c:char_discovered_cb() 0x0019 UUID: \
+00002a4e-0000-1000-8000-00805f9b34fb properties: 06 bluetoothd[1803]: \
+profiles/input/hog.c:char_discovered_cb() 0x001b UUID: \
+00002a4d-0000-1000-8000-00805f9b34fb properties: 1a bluetoothd[1803]: \
+attrib/gattrib.c:g_attrib_ref() 0x9d2940: g_attrib_ref=8 bluetoothd[1803]: \
+profiles/input/hog.c:char_discovered_cb() 0x001f UUID: \
+00002a4b-0000-1000-8000-00805f9b34fb properties: 02 bluetoothd[1803]: \
+attrib/gattrib.c:g_attrib_ref() 0x9d2940: g_attrib_ref=9 bluetoothd[1803]: \
+profiles/input/hog.c:char_discovered_cb() 0x0021 UUID: \
+00002a4a-0000-1000-8000-00805f9b34fb properties: 02 bluetoothd[1803]: \
+profiles/input/hog.c:char_discovered_cb() 0x0023 UUID: \
+00002a4c-0000-1000-8000-00805f9b34fb properties: 04 bluetoothd[1803]: \
+attrib/gattrib.c:g_attrib_ref() 0x9d2940: g_attrib_ref=10 bluetoothd[1803]: \
+attrib/gattrib.c:g_attrib_ref() 0x9d2940: g_attrib_ref=11 bluetoothd[1803]: \
+attrib/gattrib.c:g_attrib_unref() 0x9d2940: g_attrib_unref=10 bluetoothd[1803]: \
+attrib/gattrib.c:g_attrib_unref() 0x9d2940: g_attrib_unref=9 bluetoothd[1803]: \
+attrib/gattrib.c:g_attrib_unref() 0x9d2940: g_attrib_unref=8 bluetoothd[1803]: \
+attrib/gattrib.c:g_attrib_ref() 0x9d2940: g_attrib_ref=9 bluetoothd[1803]: \
+attrib/gattrib.c:g_attrib_unref() 0x9d2940: g_attrib_unref=8 bluetoothd[1803]: \
+profiles/input/hog.c:report_map_read_cb() Report MAP: bluetoothd[1803]: \
+profiles/input/hog.c:report_map_read_cb()      05 0c bluetoothd[1803]: \
+profiles/input/hhid-generic 0005:2367:0004.0001: unbalanced collection at end of \
+report description og.c:report_map_read_cb()        09 01
+bluetoothd[1803]: profiles/input/hog.c:report_map_read_cb()      a1 01
+bluetoothd[1803]: profiles/input/hog.c:report_map_read_cb()      05 0c
+bluetoothd[1803]: profiles/input/hog.c:report_map_read_cb()      15 00
+bluetoothd[1803]: profiles/input/hog.c:report_hid-generic: probe of \
+0005:2367:0004.0001 failed with error -22 map_read_cb()    25 01
+bluetoothd[1803]: profiles/input/hog.c:report_map_read_cb()      75 01
+bluetoothd[1803]: profiles/input/hog.c:report_map_read_cb()      95 01
+bluetoothd[1803]: profiles/input/hog.c:report_map_read_cb()      09 ea
+bluetoothd[1803]: profiles/input/hog.c:report_map_read_cb()      81 06
+bluetoothd[1803]: profiles/input/hog.c:report_map_read_cb()      09 e9
+bluetoothd[1803]: profiles/input/hog.c:report_map_read_cb() DIS information: \
+vendor_src=0x2, vendor=0x2367, product=0x4, version=0x100 bluetoothd[1803]: \
+attrib/gattrib.c:g_attrib_unref() 0x9d2940: g_attrib_unref=7 bluetoothd[1803]: \
+profiles/input/hog.c:proto_mode_read_cb() HoG device 0x0018 is operating in Report \
+Protocol Mode bluetoothd[1803]: attrib/gattrib.c:g_attrib_unref() 0x9d2940: \
+g_attrib_unref=6 bluetoothd[1803]: profiles/input/hog.c:info_read_cb() bcdHID: 0x0101 \
+bCountryCode: 0x00 Flags: 0x03 bluetoothd[1803]: attrib/gattrib.c:g_attrib_unref() \
+0x9d2940: g_attrib_unref=5 bluetoothd[1803]: \
+profiles/input/hog.c:report_ccc_written_cb() Report characteristic descriptor \
+written: notifications enabled bluetoothd[1803]: \
+profiles/input/hog.c:report_reference_cb() Report ID: 0x00 Report type: 0x01 \
+bluetoothd[1803]: attrib/gattrib.c:g_attrib_unref() 0x9d2940: g_attrib_unref=4 \
+bluetoothd[1803]: src/device.c:gatt_client_ready_cb() status: success, error: 10 \
+bluetoothd[1803]: src/device.c:gatt_client_ready_cb() MTU: 23 bluetoothd[1803]: \
+src/device.c:device_svc_resolved() /org/bluez/hci0/dev_E7_B7_2E_0F_E2_A8 err 0 \
+bluetoothd[1803]: profiles/gap/gas.c:gap_driver_accept() GAP profile accept \
+(E7:B7:2E:0F:E2:A8) bluetoothd[1803]: profiles/gap/gas.c:handle_characteristic() \
+Unsupported characteristic: 00002a04-0000-1000-8000-00805f9b34fb bluetoothd[1803]: \
+src/gatt-client.c:create_services() Exporting objects for GATT services: \
+E7:B7:2E:0F:E2:A8 bluetoothd[1803]: Unable to register GATT service with handle \
+0x0008 for device E7:B7:2E:0F:E2:A8: bluetoothd[1803]: Unable to register GATT \
+service with handle 0x0014 for device E7:B7:2E:0F:E2:A8: bluetoothd[1803]: Unable to \
+register GATT service with handle 0x0025 for device E7:B7:2E:0F:E2:A8: \
+bluetoothd[1803]: profiles/gap/gas.c:read_device_name_cb() GAP Device Name: ortho \
+remote bluetoothd[1803]: profiles/gap/gas.c:read_appearance_cb() GAP Appearance: \
+0x0180 bluetoothd[1803]: profiles/input/hog.c:report_value_cb() HoG report (3 bytes)
+bluetoothd[1803]: profiles/input/hog.c:report_value_cb() HoG report (3 bytes)
+
+
+--
+To unsubscribe from this list: send the line "unsubscribe linux-bluetooth" in
+the body of a message to majordomo@vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
