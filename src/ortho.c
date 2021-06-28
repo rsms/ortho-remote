@@ -8,6 +8,7 @@ const char* ortho_event_name(OrthoEvent ev) {
     case ORTHO_PRESSED:    return "PRESSED";
     case ORTHO_VALUE:      return "VALUE";
   }
+  return "?";
 }
 
 // TODO: look into an API like this.
