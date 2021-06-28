@@ -1,27 +1,12 @@
-// clang -std=c11 -Wall -framework CoreFoundation -framework CoreBluetooth ble1.m -o ble1
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
-#include <stdio.h>
-#include "ortho.h"
+#include "ortho_impl.h"
 
 #define UNUSED __attribute__((unused))
 
 static NSString* kPeripheralName = @"ortho remote";
 
-// MIDI 1 message protocol constants
-// Status Description        Msg size  Byte 1      Byte 2
-// 8x     note off           2         pitch       velocity
-// 9x     note on            2         pitch       velocity
-// Bx     controller change  2         controller  value
-// ...
-// Source: https://www.cs.cmu.edu/~music/cmsip/readings/davids-midi-spec.htm
-#define MIDI1_H_NOTE_OFF 0x8
-#define MIDI1_H_NOTE_ON  0x9
-#define MIDI1_H_CTRL_CH  0xB
-
-#define MIDI1_SYSEX_START 0xf0
-#define MIDI1_SYSEX_END   0xf7
 
 static CBUUID* kCBUUID_Service_DevInfo = nil;  // Device Information
 static CBUUID* kCBUUID_Service_Battery = nil;  // Battery
@@ -43,9 +28,8 @@ static void __attribute__((constructor)) init() {
   kCBUUID_Chari_TE_Ortho1    = [CBUUID UUIDWithString:@"20454C46-4354-5241-2052-554C45532120"];
 }
 
-#ifdef NDEBUG
-  #define dlog(fmt, ...) ((void)0)
-#else
+#ifndef NDEBUG
+  #undef dlog
   #define dlog(fmt, ...) ({ \
     const char* cstr = [@"# " stringByAppendingFormat:fmt "\n", ##__VA_ARGS__].UTF8String; \
     fwrite(cstr, strlen(cstr), 1, stderr); \
@@ -62,67 +46,6 @@ typedef struct Ortho {
   void*            userdata;
   ortho_memfree_fn memfree;
 } Ortho;
-
-
-static void on_midi_msg(Ortho* o, const uint8_t* data, size_t len) {
-  if (len < 3)
-    return;
-
-  // MIDI BLE Packet:
-  //
-  // field  | bit: 0  1  2  3  4  5  6  7
-  // -------+----- -- -- -- -- -- -- -- --
-  // header        1  r  <-timestamp_hi ->
-  // timestamp_lo  1  <-  timestamp_lo  ->
-  // status        1  <-      code      ->
-  // data1         0  ...
-  // dataN         0  ...
-
-  if (((0xF0 & data[0]) >> 7) == 0) {
-    // unexpected data byte (remaining 7 bits are data bits)
-    return;
-  }
-
-  // MSB is 1 -- this is a status message
-  if (data[0] == MIDI1_SYSEX_END) {
-    // ignore
-    return;
-  }
-
-  // uint8_t r = data[0] & 0x40;
-  // uint32_t timestamp = ((data[1] & 0x7f)) | ((data[0] & 0x3f) << 8);
-  // fprintf(stderr, "[r %u, ts %u] ", r, timestamp);
-
-  OrthoMsg msg = {0};
-
-  switch ((data[2] >> 4) & 0xF) {
-    case MIDI1_H_NOTE_OFF:
-      // payload: 2 bytes
-      dlog(@"button released (pitch %02X, velocity %02X)", data[3], data[4]);
-      msg.ev = ORTHO_RESTING;
-      break;
-
-    case MIDI1_H_NOTE_ON:
-      // payload: 2 bytes (pitch, velocity)
-      dlog(@"button depressed (pitch %02X, velocity %02X)", data[3], data[4]);
-      msg.ev = ORTHO_PRESSED;
-      break;
-
-    case MIDI1_H_CTRL_CH: {
-      // payload: 2 bytes (controller id, value 00–7f)
-      msg.value = (float)data[4] / (float)0x7f;
-      dlog(@"rotated (controller %02X, value %f)", data[3], msg.value);
-      msg.ev = ORTHO_VALUE;
-      break;
-    }
-
-    default:
-      dlog(@"unexpected MIDI message 0x%02X", (data[2] & 0x7f));
-      return;
-  }
-
-  o->msgcb(&msg, o->userdata);
-}
 
 
 typedef enum ScanState {
@@ -147,24 +70,20 @@ typedef enum ScanState {
   return self;
 }
 
-
-- (void)stopScan {
-  // Scanning uses up battery on phone, so pause the scan process for the designated interval.
-  if (_scanState != ScanOff) {
-    _scanState = ScanOff;
-    dlog(@"scan stop");
-    // [NSTimer scheduledTimerWithTimeInterval:10.0
-    //   target:self selector:@selector(startScan) userInfo:nil repeats:NO];
-    [_centralManager stopScan];
-  }
-}
-
 - (void)setPeripheral:(CBPeripheral*)peripheral {
   if (_peripheral) {
     _peripheral.delegate = nil;
   }
   _peripheral = peripheral;
   _peripheral.delegate = self;
+}
+
+- (void)stopScan {
+  if (_scanState != ScanOff) {
+    _scanState = ScanOff;
+    dlog(@"scan stop");
+    [_centralManager stopScan];
+  }
 }
 
 - (void)startScan {
@@ -180,8 +99,6 @@ typedef enum ScanState {
     } else {
       _scanState = ScanOn;
       dlog(@"scanning for \"%@\" ...", kPeripheralName);
-      // [NSTimer scheduledTimerWithTimeInterval:10.0
-      //   target:self selector:@selector(stopScan) userInfo:nil repeats:NO];
       [_centralManager scanForPeripheralsWithServices:nil options:nil];
     }
   }
@@ -373,7 +290,9 @@ typedef enum ScanState {
   }
   NSData* data = c.value;
   if ([c.UUID isEqual:kCBUUID_Chari_MIDI]) {
-    on_midi_msg(_ortho, (const uint8_t*)data.bytes, (size_t)data.length);
+    _ortho_on_ble_midi(
+      _ortho->msgcb, _ortho->userdata,
+      (const uint8_t*)data.bytes, (size_t)data.length);
   } else if ([c.UUID isEqual:kCBUUID_Chari_BatteryLevel]) {
     dlog(@"battery level: %@", data);
   } else {
